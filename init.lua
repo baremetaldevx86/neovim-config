@@ -53,59 +53,197 @@ if not vim.loop.fs_stat(lazypath) then
 end
 vim.opt.rtp:prepend(lazypath)
 
-require("lazy").setup({
+require("lazy").setup( 
+  {
+  --[[ 
+  -- ===========================
+  -- Rose Pine Theme
+  -- ===========================
+  {
+    "rose-pine/neovim",
+    name = "rose-pine",
+    priority = 1000,
+    config = function()
+      require("rose-pine").setup({
+        variant = "main", -- main, moon, or dawn
+        dark_variant = "main", -- main, moon, or dawn
+        dim_inactive_windows = false,
+        extend_background_behind_borders = true,
 
+        enable = {
+          terminal = true,
+          legacy_hazel = false,
+          migrations = true, -- Handle deprecated options automatically
+        },
+
+        styles = {
+          bold = true,
+          italic = false, -- Matches your previous Gruvbox preference
+          transparency = false, -- Keeps your terminal background
+        },
+      })
+
+      vim.cmd.colorscheme("rose-pine")
+    end,
+  },
+    --]]
+  
+  --[[  
+  -- ===========================
+  -- Catppuccin Theme
+  -- ===========================
+  {
+    "catppuccin/nvim",
+    name = "catppuccin",
+    priority = 1000,
+    config = function()
+      require("catppuccin").setup({
+        flavour = "mocha", -- latte, frappe, macchiato, mocha
+        transparent_background = true,
+        term_colors = true,
+        integrations = {
+          cmp = true,
+          mason = true,
+          nvimtree = true,
+          treesitter = true,
+          native_lsp = {
+            enabled = true,
+            virtual_text = {
+              errors = { "italic" },
+              hints = { "italic" },
+              warnings = { "italic" },
+              information = { "italic" },
+            },
+            underlines = {
+              errors = { "undercurl" },
+              hints = { "undercurl" },
+              warnings = { "undercurl" },
+              information = { "undercurl" },
+            },
+          },
+        },
+      })
+      vim.cmd.colorscheme("catppuccin")
+    end,
+  },--]]
+
+  -- ===========================
+  -- Smear Cursor (Magical Bat)
+  -- ===========================
+  {
+    "sphamba/smear-cursor.nvim",
+    event = "VeryLazy",
+    opts = {
+    -- Smear cursor when switching buffers or windows.
+    smear_between_buffers = true,
+
+    -- Smear cursor when moving within line or to neighbor lines.
+    -- Use `min_horizontal_distance_smear` and `min_vertical_distance_smear` for finer control
+    smear_between_neighbor_lines = true,
+
+    -- Draw the smear in buffer space instead of screen space when scrolling
+    scroll_buffer_space = true,
+
+    -- Set to `true` if your font supports legacy computing symbols (block unicode symbols).
+    -- Smears and particles will look a lot less blocky.
+    legacy_computing_symbols_support = false,
+
+    -- Smear cursor in insert mode.
+    -- See also `vertical_bar_cursor_insert_mode` and `distance_stop_animating_vertical_bar`.
+    smear_insert_mode = true,    
+    },
+  },  
+
+  --
   -- ===========================
   -- Gruvbox Theme
   -- ===========================
-  {
+    {
     "ellisonleao/gruvbox.nvim",
-    priority = 1000,
+    priority = 1000, -- Make sure this loads before other plugins
     config = function()
       require("gruvbox").setup({
-        contrast = "hard",
-        transparent_mode = true,
+        terminal_colors = true, 
+        undercurl = true,
+        underline = true,
+        bold = true,
         italic = {
-            strings = false,
-            comments = false,
+          strings = false,
+          emphasis = false,
+          comments = false,
+          operators = false,
+          folds = false,
         },
+        strikethrough = true,
+        invert_selection = false,
+        invert_signs = false,
+        invert_tabline = false,
+        invert_intend_guides = false,
+        inverse = true, -- invert background for search, code highlights
+        contrast = "hard", -- "soft", "medium", or "hard"
+        palette_overrides = {},
+        overrides = {},
+        dim_inactive = false,
+        transparent_mode = false,
       })
-      vim.cmd.colorscheme("gruvbox")
+      vim.cmd("colorscheme gruvbox")
     end,
   },
-
+    {
+      "nvim-lualine/lualine.nvim",
+      dependencies = { "nvim-tree/nvim-web-devicons" },
+      config = function()
+        require("lualine").setup({
+          options = {
+            theme = "gruvbox",
+            component_separators = { left = "", right = "" },
+            section_separators = { left = "", right = "" },
+          },
+        })
+      end,
+    },  
+  
   -- ===========================
   -- LSP + Autocomplete
   -- ===========================
   {
+    "williamboman/mason.nvim",
+    config = function()
+      require("mason").setup()
+    end,
+  },
+  {
+    "williamboman/mason-lspconfig.nvim",
+    dependencies = { "williamboman/mason.nvim", "neovim/nvim-lspconfig" },
+    config = function()
+      local capabilities = require("cmp_nvim_lsp").default_capabilities()
+
+      require("mason-lspconfig").setup({
+        ensure_installed = { "clangd", "pyright" },
+        -- This is the new way to do it:
+        handlers = {
+          function(server_name)
+            require("lspconfig")[server_name].setup({
+              capabilities = capabilities,
+            })
+          end,
+        },
+      })
+    end,
+  },
+  {
     "neovim/nvim-lspconfig",
+    dependencies = { "hrsh7th/cmp-nvim-lsp" },
+  },
+  {
+    "hrsh7th/nvim-cmp",
     dependencies = {
-      "williamboman/mason.nvim",
-      "williamboman/mason-lspconfig.nvim",
-      "hrsh7th/nvim-cmp",
       "hrsh7th/cmp-nvim-lsp",
       "hrsh7th/cmp-buffer",
       "hrsh7th/cmp-path",
       "L3MON4D3/LuaSnip",
     },
     config = function()
-      require("mason").setup()
-
-      require("mason-lspconfig").setup({
-        ensure_installed = { "clangd", "pyright" },
-      })
-
-      local capabilities = require("cmp_nvim_lsp").default_capabilities()
-
-      require("mason-lspconfig").setup_handlers({
-        function(server)
-          require("lspconfig")[server].setup({
-            capabilities = capabilities,
-          })
-        end,
-      })
-
-      -- Autocomplete
       local cmp = require("cmp")
       cmp.setup({
         snippet = {
@@ -127,7 +265,6 @@ require("lazy").setup({
       })
     end,
   },
-
   -- ===========================
   -- Auto Pairs
   -- ===========================
